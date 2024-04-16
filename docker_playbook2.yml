@@ -1,0 +1,53 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install Docker
+      shell: |
+        sudo apt-get update
+        sudo apt-get install ca-certificates curl
+        sudo install -m 0755 -d /etc/apt/keyrings
+        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      args:
+         executable: /bin/bash
+         
+    - name: Create Docker Group
+      shell: |
+        sudo groupadd docker
+        sudo usermod -aG docker $USER
+        newgrp docker
+      args:
+         executable: /bin/bash
+        
+    - name: Start Docker Service
+      shell: |
+        sudo systemctl enable docker.service
+        sudo systemctl enable containerd.service
+      args:
+         executable: /bin/bash
+         
+    - name: Create and use a builder
+      shell: |
+        sudo docker buildx create --name builder
+        sudo docker buildx use builder
+      args:
+         executable: /bin/bash
+        
+    - name: Build Docker Image
+      shell: |
+        sudo docker buildx build -t my-web-db-image .
+      args:
+         executable: /bin/bash
+         
+    - name: Run Docker container
+      shell: |
+        sudo docker run --name my-web-db-container -d -p 8080:80
+      args:
+        executable: /bin/bash

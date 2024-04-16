@@ -1,0 +1,40 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+        
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+        
+    - name: copy Dockerfile
+      copy:
+        src: ./Dockerfile
+        dest: /home/
+        owner: root
+        group: root
+        mode: '0644'
+        
+    - name: Build Docker Image
+      docker_image:
+        name: web_db_image
+        build:
+          path: /home/
+        source: build
+        state: present
+      
+    - name: Run Docker container
+      docker_container:
+        name: web_db_container
+        image: web_db_image
+        ports:
+          - "80:80"
+          - "3306:3306"
+        state: started
